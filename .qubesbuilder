@@ -1,4 +1,4 @@
 host:
   rpm:
-    spec:
+    build:
     - rpm_spec/qubes-yubikey-dom0.spec
