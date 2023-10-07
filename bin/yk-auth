@@ -21,8 +21,8 @@ ykslot=$(cat $CONFIG_DIR/yk-slot | grep -v '^#' | tr -d '\n')
 
 # if password was given, verify it
 if [ -n "$pass_hash" ]; then
-    # PAM appends \0 at the end
-    hash=$(head -c -1 | openssl dgst -sha1 -r | cut -f1 -d ' ')
+    # older PAM appends \0 at the end
+    hash=$(tr -d '\0' | openssl dgst -sha1 -r | cut -f1 -d ' ')
     if [ "x$pass_hash" != "x$hash" ]; then
         exit 1
     fi
