@@ -8,8 +8,8 @@ License:	GPL
 URL:		https://www.qubes-os.org/doc/yubi-key/
 
 Requires:	openssl
-Requires:	base32
-Requires:	hexdump
+Requires:	coreutils
+Requires:	util-linux
 
 
 Source0: %{name}-%{version}.tar.gz
