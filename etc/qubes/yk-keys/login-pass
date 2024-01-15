@@ -1,0 +1,12 @@
+# Insert on a new line in this file the password used for login when your 
+# YubiKey / NitroKey3 is present.
+# You don't have to provide a password; if this file is left as is then 
+# authentication with your dongle won't require an additional password
+
+# A password in plaintext? WTF? If you're using a USB keyboard, then the
+# password is known to the USB VM anyway, which is assumed to be untrusted,
+# certainly much less than dom0 where this file is located.
+#
+# But if you prefer to keep only a hash of the password stored, this is also
+# supported. Use the `login-pass-hashed.hex` file. If you insert your
+# password hash there, any plaintext version here will be ignored.

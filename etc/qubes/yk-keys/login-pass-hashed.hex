@@ -1,0 +1,13 @@
+# Insert on a new line in this file the SHA-1 hash of the password used for 
+# login when your YubiKey / NitroKey3 is present.
+# You don't have to provide a password; if this file is left as is then 
+# authentication with your dongle won't require an additional password
+#
+# To generate a SHA1 hash, you can use this command (replace "PASSWORD" with
+# your actual password):
+#
+#    echo -n "PASSWORD" | openssl dgst -sha1
+#
+# If you add your password hash in this file, then the plaintext version 
+# in the `login-pass` file will be ignored.
+

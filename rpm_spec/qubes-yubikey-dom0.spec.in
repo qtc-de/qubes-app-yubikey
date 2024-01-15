@@ -1,19 +1,21 @@
 Name:		qubes-yubikey-dom0
 Version:    @VERSION@
 Release:	1%{?dist}
-Summary:	Yubikey support scripts for Qubes OS
+Summary:	Yubikey / NitroKey3 support scripts for Qubes OS
 
 Group:		Applications/System
 License:	GPL
 URL:		https://www.qubes-os.org/doc/yubi-key/
 
 Requires:	openssl
+Requires:	base32
+Requires:	hexdump
 
 
 Source0: %{name}-%{version}.tar.gz
 
 %description
-Scripts for easier integration of YubiKey into Qubes OS login.
+Scripts for easier integration of YubiKey / NitroKey3 into Qubes OS login.
 
 %prep
 %setup -q
@@ -26,10 +28,10 @@ cp -a bin $RPM_BUILD_ROOT/usr/
 %files
 %doc README.md
 %config(noreplace) /etc/pam.d/yubikey
-%config(noreplace) /etc/qubes/yk-keys/yk-vm
+%config(noreplace) /etc/qubes/yk-keys/vm
 %config(noreplace) /etc/qubes/yk-keys/yk-slot
-%config(noreplace) /etc/qubes/yk-keys/yk-login-pass
-%config(noreplace) /etc/qubes/yk-keys/yk-login-pass-hashed.hex
+%config(noreplace) /etc/qubes/yk-keys/login-pass
+%config(noreplace) /etc/qubes/yk-keys/login-pass-hashed.hex
 %config(noreplace) /etc/qubes/yk-keys/yk-secret-key.hex
 /usr/bin/yk-auth
 
