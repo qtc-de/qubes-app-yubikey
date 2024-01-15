@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/bin/sh
 
 if ! [ -w /run/qubesd.sock ] && [ -z "$YKAUTH_REXEC" ]; then
 	exec sg qubes "YKAUTH_REXEC=1 $0 $*"
