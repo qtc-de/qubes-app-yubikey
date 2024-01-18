@@ -9,7 +9,8 @@ CONFIG_DIR="$PREFIX/etc/qubes/yk-keys"
 
 if [ -r "$CONFIG_DIR/login-pass-hashed.hex" ]; then
 	pass_hash=$(cat $CONFIG_DIR/login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
-elif [ -r "$CONFIG_DIR/yk-login-pass-hashed.hex" ]; then # compatibility with older version
+fi
+if [ -z $pass_hash -a -r "$CONFIG_DIR/yk-login-pass-hashed.hex" ]; then # compatibility with older version
 	pass_hash=$(cat $CONFIG_DIR/yk-login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
 fi
 if [ -z "$pass_hash" ]; then
@@ -18,7 +19,8 @@ if [ -z "$pass_hash" ]; then
         if [ -r "$CONFIG_DIR/login-pass" ]; then
 		pass_hash_clear=$(cat $CONFIG_DIR/login-pass | grep -v '^#' | tr -d '\n' |
 	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
-        elif [ -r "$CONFIG_DIR/yk-login-pass" ]; then
+	fi
+	if [ -z $pass_hash_clear -a -r "$CONFIG_DIR/yk-login-pass" ]; then
 		pass_hash_clear=$(cat $CONFIG_DIR/yk-login-pass | grep -v '^#' | tr -d '\n' |
 	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
 	fi
@@ -39,11 +41,11 @@ fi
 
 if [ -r "$CONFIG_DIR/vm" ]; then
 	vm=$(cat $CONFIG_DIR/vm | grep -v '^#' | tr -d '\n')
-elif [ -r "$CONFIG_DIR/yk-vm" ]; then
-	vm=$(cat $CONFIG_DIR/yk-vm | grep -v '^#' | tr -d '\n')
-else
-	vm="sys-usb"
 fi
+if [ -z $vm -a -r "$CONFIG_DIR/yk-vm" ]; then
+	vm=$(cat $CONFIG_DIR/yk-vm | grep -v '^#' | tr -d '\n')
+fi
+[ -z $vm ] && vm="sys-usb"
 
 # to use qubes-yubikey-dom0 with a NitroKey3, execute the following in dom0:
 # echo -n "your-20-digit-secret" | base32 | sudo tee /etc/qubes/yk-keys/nk-hotp-secret
@@ -71,7 +73,7 @@ if [ -z "$nk_secret" ]; then	# YubiKey
 else				# NitroKey3
 	# put the output of the following command (replace the secret in quotes) into 
 	# $CONFIG_DIR/nk-hotp-secret and use as secret for your NK3 as well:
-	#secret=$(echo -n "your-20-digit-secret" | base32)
+	#secret=$(echo -n "your-20-digit-secret" | base32)	
 	# for registering that secret with your NK3 use (in the VM it's attached to):
 	#nitropy nk3 secrets register --kind hotp --hash sha256 --digits-str 8 --counter-start 1 --touch-button loginxs $secret
 	if [ -r "$CONFIG_DIR/nk-hotp-counter" ]; then
