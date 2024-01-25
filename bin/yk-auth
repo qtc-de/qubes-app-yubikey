@@ -86,8 +86,8 @@ else				# NitroKey3
 	hmac=$(printf "$(printf "%016X" "$counter" | sed -e 's/\(..\)/\\x\1/g')" | 
 		openssl dgst -sha256 -mac HMAC -macopt "hexkey:$key" | sed -e 's/^.* //')
 	otp=$(printf "%08d" "$(( ( (0x${hmac:$((2 * 0x${hmac: -1})):8}) & 0x7FFFFFFF) % (10**8) ))" )
-	cmd="sh -c '\$HOME/.local/bin/nitropy nk3 secrets get loginxs || nitropy nk3 secrets get loginxs'"
-	response=$(qvm-run -a --nogui -p $vm "$cmd" | tail -n1 | tr -d "\n")
+	cmd="sh -c '/home/user/.local/bin/nitropy nk3 secrets get loginxs || nitropy nk3 secrets get loginxs'"
+	response=$(qvm-run -a -u root --nogui -p $vm "$cmd" | tail -n1 | tr -d "\n")
 	if [ "$response" = "$otp" ]; then
 	 	# user may not touch the NK3 in time (-> no counter++ and no otp release)
 		echo "$((counter+1))" | sudo tee $CONFIG_DIR/nk-hotp-counter
