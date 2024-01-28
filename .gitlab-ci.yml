@@ -7,3 +7,10 @@ include:
   project: QubesOS/qubes-continuous-integration
 - file: /r4.2/gitlab-host.yml
   project: QubesOS/qubes-continuous-integration
+
+checks:shellcheck:
+  stage: checks
+  tags:
+    - docker
+  script:
+    - shellcheck bin/yk-auth
