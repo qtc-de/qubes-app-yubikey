@@ -1,5 +1,5 @@
 Name:		qubes-yubikey-dom0
-Version:    @VERSION@
+Version:	@VERSION@
 Release:	1%{?dist}
 Summary:	Yubikey / NitroKey3 support scripts for Qubes OS
 
@@ -10,6 +10,7 @@ URL:		https://www.qubes-os.org/doc/yubi-key/
 Requires:	openssl
 Requires:	coreutils
 Requires:	util-linux
+Requires:	xxd
 
 
 Source0: %{name}-%{version}.tar.gz
