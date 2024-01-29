@@ -10,8 +10,11 @@ URL:		https://www.qubes-os.org/doc/yubi-key/
 Requires:	openssl
 Requires:	coreutils
 Requires:	util-linux
-Requires:	xxd
-
+%if 0%{?fedora} < 36
+Requires: vim-common
+%else
+Requires: xxd
+%endif
 
 Source0: %{name}-%{version}.tar.gz
 
