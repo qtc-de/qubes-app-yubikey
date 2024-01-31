@@ -1,40 +1,98 @@
-#!/bin/sh
+#!/bin/bash
+
+if ! [ -w /run/qubesd.sock ] && [ -z "$YKAUTH_REXEC" ]; then
+	exec sg qubes "YKAUTH_REXEC=1 $0 $*"
+fi
 
 PREFIX=""
 CONFIG_DIR="$PREFIX/etc/qubes/yk-keys"
-key=$(cat $CONFIG_DIR/yk-secret-key.hex | grep -v '^#' | tr -d ' \n')
-if [ -r "$CONFIG_DIR/yk-login-pass-hashed.hex" ]; then
-    pass_hash=$(cat $CONFIG_DIR/yk-login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
+
+if [ -r "$CONFIG_DIR/login-pass-hashed.hex" ]; then
+	pass_hash=$(cat $CONFIG_DIR/login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
 fi
-if [ -z "$pass_hash" -a -r "$CONFIG_DIR/yk-login-pass" ]; then
-    # do it in one line (without any intermediate variable, to not leak
-    # password to logs, even with set -x
-    pass_hash_clear=$(cat $CONFIG_DIR/yk-login-pass | grep -v '^#' | tr -d '\n' |
-        openssl dgst -sha1 -r | cut -f1 -d ' ')
-    # check if not hash of empty string
-    if [ "$pass_hash_clear" != "da39a3ee5e6b4b0d3255bfef95601890afd80709" ]; then
-        pass_hash="$pass_hash_clear"
-    fi
+if [ -z "$pass_hash" ] && [ -r "$CONFIG_DIR/yk-login-pass-hashed.hex" ]; then # compatibility with older version
+	pass_hash=$(cat $CONFIG_DIR/yk-login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
 fi
-ykvm=$(cat $CONFIG_DIR/yk-vm | grep -v '^#' | tr -d '\n')
-ykslot=$(cat $CONFIG_DIR/yk-slot | grep -v '^#' | tr -d '\n')
+if [ -z "$pass_hash" ]; then
+    	# do it in one line (without any intermediate variable, to not leak
+	# password to logs, even with set -x
+        if [ -r "$CONFIG_DIR/login-pass" ]; then
+		pass_hash_clear=$(cat $CONFIG_DIR/login-pass | grep -v '^#' | tr -d '\n' |
+	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
+	fi
+	if [ -z "$pass_hash_clear" ] && [ -r "$CONFIG_DIR/yk-login-pass" ]; then
+		pass_hash_clear=$(cat $CONFIG_DIR/yk-login-pass | grep -v '^#' | tr -d '\n' |
+	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
+	fi
+    	# check if not hash of empty string
+    	if [ -n "$pass_hash_clear" ] && [ "$pass_hash_clear" != "da39a3ee5e6b4b0d3255bfef95601890afd80709" ]; then
+        	pass_hash="$pass_hash_clear"
+    	fi
+fi
 
 # if password was given, verify it
 if [ -n "$pass_hash" ]; then
-    # older PAM appends \0 at the end
-    hash=$(tr -d '\0' | openssl dgst -sha1 -r | cut -f1 -d ' ')
-    if [ "x$pass_hash" != "x$hash" ]; then
-        exit 1
-    fi
+	# older PAM appends \0 at the end
+	hash=$(tr -d '\0' | openssl dgst -sha1 -r | cut -f1 -d ' ')
+	if [ "x$pass_hash" != "x$hash" ]; then
+        	exit 1
+	fi
 fi
 
-challenge=$(head -c64 /dev/urandom | xxd -c 64 -ps)
-response=$(qvm-run -a -u root --nogui -p $ykvm "ykchalresp -'$ykslot' -x '$challenge'")
+if [ -r "$CONFIG_DIR/vm" ]; then
+	vm=$(cat $CONFIG_DIR/vm | grep -v '^#' | tr -d '\n')
+fi
+if [ -z "$vm" ] && [ -r "$CONFIG_DIR/yk-vm" ]; then
+	vm=$(cat $CONFIG_DIR/yk-vm | grep -v '^#' | tr -d '\n')
+fi
+[ -z "$vm" ] && vm="sys-usb"
 
-correct_response=$(echo $challenge | xxd -r -ps | openssl dgst -sha1 -macopt hexkey:$key -mac HMAC -r | cut -f1 -d ' ')
-# A yubikey configured for a variable length challenge will truncate the last byte when given a 64 byte challenge
-# The 'correct' response for a yubikey in that configuration will be:
-alternate_response=$(echo $challenge | cut -c1-126 | xxd -r -ps | openssl dgst -sha1 -macopt hexkey:$key -mac HMAC -r | cut -f1 -d ' ')
+# to use qubes-yubikey-dom0 with a NitroKey3, execute the following in dom0:
+# echo -n "your-20-digit-secret" | base32 | sudo tee /etc/qubes/yk-keys/nk-hotp-secret
+if [ -r "$CONFIG_DIR/nk-hotp-secret" ]; then
+	nk_secret=$(cat $CONFIG_DIR/nk-hotp-secret | grep -v '^#' | tr -d '\n')
+fi
 
-test "x$correct_response" = "x$response" -o "x$alternate_response" = "x$response"
-exit $?
+if [ -z "$nk_secret" ]; then	# YubiKey
+	if [ -r "$CONFIG_DIR/yk-slot" ] && [ -r "$CONFIG_DIR/yk-secret-key.hex" ]; then
+		ykslot=$(cat $CONFIG_DIR/yk-slot | grep -v '^#' | tr -d '\n')
+		key=$(cat $CONFIG_DIR/yk-secret-key.hex | grep -v '^#' | tr -d ' \n')
+		challenge=$(head -c64 /dev/urandom | xxd -c 64 -ps)
+		response=$(qvm-run -a -u root --nogui -p "$vm" "ykchalresp -'$ykslot' -x '$challenge'")
+		correct_response=$(echo "$challenge" | xxd -r -ps |
+		       	openssl dgst -sha1 -macopt hexkey:"$key" -mac HMAC -r | cut -f1 -d ' ')
+		# A yubikey configured for a variable length challenge will 
+		# truncate the last byte when given a 64 byte challenge
+		# The 'correct' response for a yubikey in that configuration will be:
+		alternate_response=$(echo "$challenge" | cut -c1-126 | xxd -r -ps |
+		       	openssl dgst -sha1 -macopt hexkey:"$key" -mac HMAC -r | cut -f1 -d ' ')
+
+		test "x$correct_response" = "x$response" -o "x$alternate_response" = "x$response"
+		exit $?
+	fi
+else				# NitroKey3
+	# put the output of the following command (replace the secret in quotes) into 
+	# $CONFIG_DIR/nk-hotp-secret and use as secret for your NK3 as well:
+	#secret=$(echo -n "your-20-digit-secret" | base32)	
+	# for registering that secret with your NK3 use (in the VM it's attached to):
+	#nitropy nk3 secrets register --kind hotp --hash sha256 --digits-str 8 --counter-start 1 --touch-button loginxs $secret
+	if [ -r "$CONFIG_DIR/nk-hotp-counter" ]; then
+		counter=$(cat $CONFIG_DIR/nk-hotp-counter | grep -v '^#' | tr -d '\n')
+	else
+		counter=1
+	fi
+	# HOTP implementation based on MIT-licensed code at github.com/bfreis/otp
+	key=$(printf '%s' "${nk_secret}" | tr '[:lower:]' '[:upper:]' | sed -e 's/ //g' | base32 -d | hexdump -ve '/1 "%02X"')
+	hmac=$(printf "%016X" "$counter" | xxd -r -ps | 
+		openssl dgst -sha256 -mac HMAC -macopt hexkey:"$key" | sed -e 's/^.* //')
+	otp=$(printf "%08d" "$(( ( (0x${hmac:$((2 * 0x${hmac: -1})):8}) & 0x7FFFFFFF) % (10**8) ))" )
+	cmd="sh -c '/home/user/.local/bin/nitropy nk3 secrets get loginxs || nitropy nk3 secrets get loginxs'"
+	response=$(qvm-run -u root -a --nogui -p "$vm" "$cmd" | tail -n1 | tr -d "\n")
+	if [ "$response" = "$otp" ]; then
+	 	# user may not touch the NK3 in time (-> no counter++ and no otp release)
+		echo "$((counter+1))" | sudo tee $CONFIG_DIR/nk-hotp-counter
+		exit 0
+	fi
+fi
+
+exit 1

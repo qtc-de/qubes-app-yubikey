@@ -1,4 +1,4 @@
-A handful script for configuring Qubes YK login support.
+A handful script for configuring Qubes YubiKey and NitroKey3 login support.
 
 For more info see:
 

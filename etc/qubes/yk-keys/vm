@@ -1,0 +1,5 @@
+# The name of the Qubes VM where the YubiKey / NitroKey3 is inserted.
+# Must have a USB controller assigned, or YubiKey / NitroKey3 attached.
+# Note: this VM is *not* considered trusted.
+
+sys-usb
