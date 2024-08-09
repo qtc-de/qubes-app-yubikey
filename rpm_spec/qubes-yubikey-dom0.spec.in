@@ -7,6 +7,7 @@ Group:		Applications/System
 License:	GPL
 URL:		https://www.qubes-os.org/doc/yubi-key/
 
+BuildArch:	noarch
 Requires:	openssl
 Requires:	coreutils
 Requires:	util-linux
