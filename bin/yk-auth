@@ -7,27 +7,34 @@ fi
 PREFIX=""
 CONFIG_DIR="$PREFIX/etc/qubes/yk-keys"
 
-if [ -r "$CONFIG_DIR/login-pass-hashed.hex" ]; then
-	pass_hash=$(cat $CONFIG_DIR/login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
-fi
-if [ -z "$pass_hash" ] && [ -r "$CONFIG_DIR/yk-login-pass-hashed.hex" ]; then # compatibility with older version
-	pass_hash=$(cat $CONFIG_DIR/yk-login-pass-hashed.hex | grep -v '^#' | tr -d '\n')
-fi
+for PW_HEX_FILE in 'login-pass-hashed.hex' 'yk-login-pass-hashed.hex' 'yk-login-pass-hashed.hex.rpmsave';
+do
+    if [ -r "$CONFIG_DIR/$PW_HEX_FILE" ]; then
+        pass_hash=$(cat $CONFIG_DIR/$PW_HEX_FILE | grep -v '^#' | tr -d '\n')
+    fi
+
+    if [ -n "$pass_hash" ]; then
+        break
+    fi
+done
+
 if [ -z "$pass_hash" ]; then
-    	# do it in one line (without any intermediate variable, to not leak
-	# password to logs, even with set -x
-        if [ -r "$CONFIG_DIR/login-pass" ]; then
-		pass_hash_clear=$(cat $CONFIG_DIR/login-pass | grep -v '^#' | tr -d '\n' |
-	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
-	fi
-	if [ -z "$pass_hash_clear" ] && [ -r "$CONFIG_DIR/yk-login-pass" ]; then
-		pass_hash_clear=$(cat $CONFIG_DIR/yk-login-pass | grep -v '^#' | tr -d '\n' |
-	    		openssl dgst -sha1 -r | cut -f1 -d ' ')
-	fi
-    	# check if not hash of empty string
-    	if [ -n "$pass_hash_clear" ] && [ "$pass_hash_clear" != "da39a3ee5e6b4b0d3255bfef95601890afd80709" ]; then
-        	pass_hash="$pass_hash_clear"
-    	fi
+    for PW_FILE in 'login-pass' 'yk-login-pass' 'yk-login-pass.rpmsave';
+    do
+        # do it in one line (without any intermediate variable,
+        # to not leak password to logs, even with set -x
+
+        if [ -r "$CONFIG_DIR/$PW_FILE" ]; then
+            pass_hash_clear=$(cat $CONFIG_DIR/$PW_FILE | grep -v '^#' | tr -d '\n' |
+                openssl dgst -sha1 -r | cut -f1 -d ' ')
+        fi
+
+        # check if not hash of empty string
+        if [ -n "$pass_hash_clear" ] && [ "$pass_hash_clear" != "da39a3ee5e6b4b0d3255bfef95601890afd80709" ]; then
+            pass_hash="$pass_hash_clear"
+            break
+        fi
+    done
 fi
 
 # if password was given, verify it
